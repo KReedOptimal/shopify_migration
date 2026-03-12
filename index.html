@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shopify Migration — Performance Scorecard</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #f0f2f7;
+    --surface:   #ffffff;
+    --border:    #dde1ea;
+    --text:      #1a1d26;
+    --muted:     #8a90a4;
+    --accent:    #4fffb0;
+    --warn:      #d97c00;
+    --danger:    #d93a55;
+    --good:      #0fa86e;
+    --neutral:   #4a5bcc;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    min-height: 100vh;
+    padding: 48px 32px;
+    letter-spacing: 0.01em;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.15;
+  }
+
+  .wrapper {
+    position: relative;
+    z-index: 1;
+    max-width: 1080px;
+    margin: 0 auto;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 56px;
+    padding: 36px 40px;
+    background: #0d1b3e;
+    border-radius: 12px;
+    animation: fadeUp 0.6s ease both;
+  }
+  .header-left .eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #7dd4fc;
+    margin-bottom: 10px;
+  }
+  .header-left h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(42px, 6vw, 72px);
+    letter-spacing: 0.04em;
+    line-height: 0.9;
+    color: #ffffff;
+  }
+  .header-left h1 span { color: #7dd4fc; }
+  .header-right {
+    text-align: right;
+    font-size: 12px;
+    color: rgba(255,255,255,0.5);
+    font-family: 'DM Mono', monospace;
+    line-height: 1.8;
+  }
+
+  /* ── DATE PICKER ── */
+  .date-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 32px;
+    animation: fadeUp 0.6s 0.05s ease both;
+  }
+  .date-bar-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .date-select-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+  }
+  .date-select-wrap::after {
+    content: '▾';
+    position: absolute;
+    right: 12px;
+    font-size: 11px;
+    color: var(--muted);
+    pointer-events: none;
+  }
+  #dateSelect {
+    appearance: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 36px 8px 14px;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: var(--text);
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  #dateSelect:hover, #dateSelect:focus { border-color: var(--neutral); }
+  .date-count {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+  }
+
+  /* ── SUMMARY TILES ── */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 48px;
+  }
+  .tile {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 22px 20px;
+    animation: fadeUp 0.6s ease both;
+  }
+  .tile:nth-child(1) { animation-delay: 0.1s; }
+  .tile:nth-child(2) { animation-delay: 0.18s; }
+  .tile:nth-child(3) { animation-delay: 0.26s; }
+  .tile:nth-child(4) { animation-delay: 0.34s; }
+  .tile-label {
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    margin-bottom: 10px;
+  }
+  .tile-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 38px;
+    letter-spacing: 0.05em;
+    line-height: 1;
+  }
+  .tile-unit {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 24px;
+    font-weight: 400;
+    letter-spacing: 0;
+  }
+  .tile-sub { font-size: 11px; color: var(--muted); margin-top: 6px; }
+  .c-danger  { color: var(--danger); }
+  .c-warn    { color: var(--warn); }
+  .c-good    { color: var(--good); }
+  .c-neutral { color: var(--neutral); }
+
+  /* ── SECTION TITLE ── */
+  .section-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 14px;
+    animation: fadeUp 0.6s 0.3s ease both;
+  }
+
+  /* ── SCORECARD TABLE ── */
+  .scorecard {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 48px;
+    animation: fadeUp 0.6s 0.35s ease both;
+  }
+
+  table { width: 100%; border-collapse: collapse; }
+
+  thead tr { background: #f5f7fb; }
+  thead th {
+    padding: 14px 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 400;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  thead th:not(:first-child) { text-align: center; }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: rgba(0,0,0,0.02); }
+
+  td { padding: 18px 20px; font-size: 14px; vertical-align: middle; }
+  td:not(:first-child) { text-align: center; }
+
+  .page-name { font-weight: 600; font-size: 13px; letter-spacing: 0.02em; }
+  .page-type {
+    font-size: 10px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 3px;
+  }
+
+  .metric-cell { display: inline-flex; flex-direction: column; align-items: center; gap: 6px; }
+  .metric-value { font-family: 'DM Mono', monospace; font-size: 15px; font-weight: 500; }
+  .metric-bar-track {
+    width: 72px; height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: visible;
+    position: relative;
+  }
+  .metric-bar-fill { height: 100%; border-radius: 2px; max-width: 100%; transition: width 0.6s ease; }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .badge-fail { background: rgba(217,58,85,0.08);  color: var(--danger); border: 1px solid rgba(217,58,85,0.25); }
+  .badge-warn { background: rgba(217,124,0,0.08);  color: var(--warn);   border: 1px solid rgba(217,124,0,0.25); }
+  .badge-pass { background: rgba(15,168,110,0.08); color: var(--good);   border: 1px solid rgba(15,168,110,0.25); }
+
+  .score-gauge { position: relative; width: 48px; height: 48px; margin: 0 auto; }
+  .score-gauge svg { transform: rotate(-90deg); }
+  .score-label {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px; letter-spacing: 0.05em;
+  }
+
+  /* ── THRESHOLD FOOTER ── */
+  .threshold-footer {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 12px 12px;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-top: -48px;
+    margin-bottom: 48px;
+    animation: fadeUp 0.6s 0.4s ease both;
+  }
+  .tf-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--muted); white-space: nowrap;
+  }
+  .tf-metrics { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; flex: 1; }
+  .tf-item { display: flex; align-items: center; gap: 6px; }
+  .tf-name { font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 500; color: var(--text); letter-spacing: 0.05em; margin-right: 2px; }
+  .tf-good, .tf-warn, .tf-bad { font-family: 'DM Mono', monospace; font-size: 10px; padding: 2px 7px; border-radius: 4px; }
+  .tf-good { background: rgba(15,168,110,0.1); color: var(--good); }
+  .tf-warn  { background: rgba(217,124,0,0.08); color: var(--warn); }
+  .tf-bad   { background: rgba(217,58,85,0.08); color: var(--danger); }
+  .tf-divider { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
+
+  /* ── FOOTER ── */
+  .footer {
+    border-top: 1px solid var(--border);
+    padding-top: 20px;
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    animation: fadeUp 0.6s 0.5s ease both;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 600px) {
+    body { padding: 24px 16px; }
+    thead th, td { padding: 12px 12px; }
+    .metric-bar-track { width: 48px; }
+    .header { flex-direction: column; gap: 20px; }
+    .header-right { text-align: left; }
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <header class="header">
+    <div class="header-left">
+      <div class="eyebrow">Executive Performance Scorecard</div>
+      <h1 id="headerTitle">Loading…</h1>
+    </div>
+    <div class="header-right" id="headerMeta"></div>
+  </header>
+
+  <!-- DATE PICKER -->
+  <div class="date-bar">
+    <span class="date-bar-label">Snapshot</span>
+    <div class="date-select-wrap">
+      <select id="dateSelect"></select>
+    </div>
+    <span class="date-count" id="dateCount"></span>
+  </div>
+
+  <div class="summary-grid" id="summaryGrid"></div>
+
+  <div class="section-title">Page-Level Breakdown</div>
+  <div class="scorecard">
+    <table>
+      <thead>
+        <tr>
+          <th>Page</th>
+          <th>LCP</th>
+          <th>CLS</th>
+          <th>TBT</th>
+          <th>TTFB</th>
+          <th>Lighthouse</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+  <div class="threshold-footer">
+    <div class="tf-label">Google Thresholds</div>
+    <div class="tf-metrics">
+      <div class="tf-item"><span class="tf-name">LCP</span><span class="tf-good">≤ 2.5s</span></div>
+      <div class="tf-divider"></div>
+      <div class="tf-item"><span class="tf-name">CLS</span><span class="tf-good">≤ 0.1</span></div>
+      <div class="tf-divider"></div>
+      <div class="tf-item"><span class="tf-name">TBT</span><span class="tf-good">≤ 200ms</span></div>
+      <div class="tf-divider"></div>
+      <div class="tf-item"><span class="tf-name">TTFB</span><span class="tf-good">≤ 800ms</span></div>
+      <div class="tf-divider"></div>
+      <div class="tf-item"><span class="tf-name">Lighthouse</span><span class="tf-good">≥ 90</span></div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <span id="footerSource"></span>
+    <span>Confidential — Internal Use Only</span>
+  </footer>
+
+</div>
+
+<script>
+  const thresholds = {
+    lcp:   { good: 2.5,  warn: 4.0,  unit: 's', decimals: 2, maxBar: 6 },
+    cls:   { good: 0.1,  warn: 0.25, unit: '',  decimals: 2, maxBar: 0.5 },
+    tbt:   { good: 0.2,  warn: 0.6,  unit: 's', decimals: 2, maxBar: 4 },
+    ttfb:  { good: 0.8,  warn: 1.8,  unit: 's', decimals: 2, maxBar: 3 },
+    score: { good: 90,   warn: 50,   unit: '',  decimals: 0, maxBar: 100 },
+  };
+
+  function getRating(key, val) {
+    const t = thresholds[key];
+    if (key === 'score') {
+      if (val >= t.good) return 'good';
+      if (val >= t.warn) return 'warn';
+      return 'fail';
+    }
+    if (val <= t.good) return 'good';
+    if (val <= t.warn) return 'warn';
+    return 'fail';
+  }
+
+  function colorVar(rating) {
+    return rating === 'good' ? 'var(--good)' : rating === 'warn' ? 'var(--warn)' : 'var(--danger)';
+  }
+
+  function ratingClass(rating) {
+    return rating === 'good' ? 'good' : rating === 'warn' ? 'warn' : 'danger';
+  }
+
+  function metricCell(key, val) {
+    const t = thresholds[key];
+    const rating = getRating(key, val);
+    const color = colorVar(rating);
+    const displayVal = val.toFixed(t.decimals) + t.unit;
+    const pct = key === 'score' ? val : Math.min(val / t.maxBar, 1) * 100;
+    return `
+      <div class="metric-cell">
+        <span class="metric-value" style="color:${color}">${displayVal}</span>
+        <div class="metric-bar-track">
+          <div class="metric-bar-fill" style="width:${Math.min(pct,100)}%;background:${color}"></div>
+        </div>
+      </div>`;
+  }
+
+  function scoreGauge(score) {
+    const rating = getRating('score', score);
+    const color = colorVar(rating);
+    const r = 18, cx = 24, cy = 24;
+    const circ = 2 * Math.PI * r;
+    const dash = (score / 100) * circ;
+    return `
+      <div class="score-gauge">
+        <svg width="48" height="48" viewBox="0 0 48 48">
+          <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--border)" stroke-width="4"/>
+          <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="4"
+            stroke-dasharray="${dash} ${circ}" stroke-linecap="round"/>
+        </svg>
+        <div class="score-label" style="color:${color}">${score}</div>
+      </div>`;
+  }
+
+  function overallBadge(page) {
+    const keys = ['lcp','cls','tbt','ttfb','score'];
+    const ratings = keys.map(k => getRating(k, page[k]));
+    if (ratings.every(r => r === 'good')) return '<span class="badge badge-pass">Pass</span>';
+    if (ratings.some(r => r === 'fail'))  return '<span class="badge badge-fail">Needs Work</span>';
+    return '<span class="badge badge-warn">Review</span>';
+  }
+
+  function renderSnapshot(snapshot, globalMeta) {
+    const pages = snapshot.pages;
+
+    // Header meta
+    const parts = globalMeta.title.split(' ');
+    const last = parts.pop();
+    document.getElementById('headerTitle').innerHTML = `${parts.join(' ')}<br><span>${last}</span>`;
+    document.getElementById('headerMeta').innerHTML =
+      `Platform: ${globalMeta.platform}<br>` +
+      `Pages Audited: ${snapshot.pages_audited}<br>` +
+      `Device: ${globalMeta.device}<br>` +
+      `Date: ${snapshot.label}<br>` +
+      `Benchmark: Google Core Web Vitals`;
+
+    // Footer
+    document.getElementById('footerSource').textContent =
+      `Source: Shopify Lighthouse Audit · ${globalMeta.device} · ${snapshot.label} · Google Core Web Vitals 2024`;
+
+    // Summary tiles
+    const avgScore = Math.round(pages.reduce((s, p) => s + p.score, 0) / pages.length);
+    const avgLcp   = (pages.reduce((s, p) => s + p.lcp, 0) / pages.length).toFixed(1);
+    const avgTbt   = (pages.reduce((s, p) => s + p.tbt, 0) / pages.length).toFixed(2);
+    const totalMetrics = pages.length * 5;
+    const passing = pages.reduce((s, p) =>
+      s + ['lcp','cls','tbt','ttfb','score'].filter(k => getRating(k, p[k]) === 'good').length, 0);
+
+    document.getElementById('summaryGrid').innerHTML = `
+      <div class="tile"><div class="tile-label">Avg. Lighthouse</div>
+        <div class="tile-value c-${ratingClass(getRating('score', avgScore))}">${avgScore}</div>
+        <div class="tile-sub">Target: 90+</div></div>
+      <div class="tile"><div class="tile-label">Avg. LCP</div>
+        <div class="tile-value c-${ratingClass(getRating('lcp', parseFloat(avgLcp)))}">${avgLcp}<span class="tile-unit">s</span></div>
+        <div class="tile-sub">Target: ≤ 2.5s</div></div>
+      <div class="tile"><div class="tile-label">Avg. TBT</div>
+        <div class="tile-value c-${ratingClass(getRating('tbt', parseFloat(avgTbt)))}">${avgTbt}<span class="tile-unit">s</span></div>
+        <div class="tile-sub">Target: ≤ 200ms</div></div>
+      <div class="tile"><div class="tile-label">Metrics Passing</div>
+        <div class="tile-value c-good">${passing}<span style="font-size:22px;color:var(--muted)">/${totalMetrics}</span></div>
+        <div class="tile-sub">Across all pages</div></div>
+    `;
+
+    // Table
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = '';
+    pages.forEach((p, i) => {
+      const tr = document.createElement('tr');
+      tr.style.animationDelay = `${0.05 + i * 0.06}s`;
+      tr.style.animation = 'fadeUp 0.4s ease both';
+      tr.innerHTML = `
+        <td><div class="page-name">${p.name}</div><div class="page-type">${p.type}</div></td>
+        <td>${metricCell('lcp', p.lcp)}</td>
+        <td>${metricCell('cls', p.cls)}</td>
+        <td>${metricCell('tbt', p.tbt)}</td>
+        <td>${metricCell('ttfb', p.ttfb)}</td>
+        <td>${scoreGauge(p.score)}</td>
+        <td>${overallBadge(p)}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function buildDatePicker(snapshots) {
+    // Sort dates descending (newest first)
+    const dates = Object.keys(snapshots).sort((a, b) => b.localeCompare(a));
+    const select = document.getElementById('dateSelect');
+    select.innerHTML = '';
+    dates.forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d;
+      opt.textContent = snapshots[d].label || d;
+      select.appendChild(opt);
+    });
+    document.getElementById('dateCount').textContent =
+      `${dates.length} snapshot${dates.length !== 1 ? 's' : ''} available`;
+    return dates[0]; // return latest
+  }
+
+  fetch('data.json')
+    .then(r => r.json())
+    .then(data => {
+      const latestDate = buildDatePicker(data.snapshots);
+
+      // Render the latest snapshot on load
+      renderSnapshot(data.snapshots[latestDate], data.meta);
+
+      // Re-render on selection change
+      document.getElementById('dateSelect').addEventListener('change', e => {
+        renderSnapshot(data.snapshots[e.target.value], data.meta);
+      });
+    })
+    .catch(() => {
+      document.getElementById('tableBody').innerHTML =
+        '<tr><td colspan="7" style="text-align:center;color:var(--danger);padding:40px">Failed to load data.json</td></tr>';
+    });
+</script>
+</body>
+</html>
