@@ -574,7 +574,7 @@
 
     // Summary tiles
     const avgScore = Math.round(pages.reduce((s, p) => s + p.score, 0) / pages.length);
-    const avgLcp   = (pages.reduce((s, p) => s + p.lcp, 0) / pages.length).toFixed(1);
+    const avgLcp   = (pages.reduce((s, p) => s + p.lcp, 0) / pages.length).toFixed(2);
     const avgTbt   = (pages.reduce((s, p) => s + p.tbt, 0) / pages.length).toFixed(2);
     const totalMetrics = pages.length * 5;
     const passing = pages.reduce((s, p) =>
