@@ -101,6 +101,76 @@ def collect_snapshot(snapshot_date, template):
         "pages": pages,
     }
 
+THRESHOLDS = {
+    "lcp":   {"good": 2.5,  "warn": 4.0},
+    "cls":   {"good": 0.1,  "warn": 0.25},
+    "tbt":   {"good": 0.2,  "warn": 0.6},
+    "ttfb":  {"good": 0.8,  "warn": 1.8},
+    "score": {"good": 90,   "warn": 50},
+}
+
+
+def get_rating(key, val):
+    t = THRESHOLDS[key]
+    if key == "score":
+        if val >= t["good"]: return "good"
+        if val >= t["warn"]: return "warn"
+        return "fail"
+    if val <= t["good"]: return "good"
+    if val <= t["warn"]: return "warn"
+    return "fail"
+
+
+def passes(page):
+    return sum(1 for k in ["lcp", "cls", "tbt", "ttfb", "score"] if get_rating(k, page[k]) == "good")
+
+
+def print_summary(snapshot, prev_snapshot=None):
+    pages = snapshot["pages"]
+    avg_score = round(sum(p["score"] for p in pages) / len(pages))
+    total_passing = sum(passes(p) for p in pages)
+    total_metrics = len(pages) * 5
+
+    print("\n── Summary ───────────────────────────────────────────────")
+
+    # Per-page lighthouse scores
+    print("\n  Page Lighthouse Scores:")
+    for page in pages:
+        score = page["score"]
+        change_str = ""
+        if prev_snapshot:
+            prev_page = next((p for p in prev_snapshot["pages"] if p["name"] == page["name"]), None)
+            if prev_page:
+                diff = score - prev_page["score"]
+                if diff != 0:
+                    arrow = "▲" if diff > 0 else "▼"
+                    change_str = f"  {arrow} {abs(diff)} pt{'s' if abs(diff) != 1 else ''}"
+        print(f"    {page['name']:<12} {score:>3}{change_str}")
+
+    # Overall average lighthouse
+    print()
+    avg_change_str = ""
+    if prev_snapshot:
+        prev_pages = prev_snapshot["pages"]
+        prev_avg = round(sum(p["score"] for p in prev_pages) / len(prev_pages))
+        diff = avg_score - prev_avg
+        if diff != 0:
+            arrow = "▲" if diff > 0 else "▼"
+            avg_change_str = f"  {arrow} {abs(diff)} pt{'s' if abs(diff) != 1 else ''} vs prior week"
+    print(f"  Avg. Lighthouse:  {avg_score}{avg_change_str}")
+
+    # Metrics passing
+    passing_change_str = ""
+    if prev_snapshot:
+        prev_passing = sum(passes(p) for p in prev_snapshot["pages"])
+        diff = total_passing - prev_passing
+        if diff != 0:
+            arrow = "▲" if diff > 0 else "▼"
+            passing_change_str = f"  {arrow} {abs(diff)} metric{'s' if abs(diff) != 1 else ''} vs prior week"
+    print(f"  Metrics Passing:  {total_passing}/{total_metrics}{passing_change_str}")
+    print()
+
+
 def sha256(text):
     return hashlib.sha256(text.encode()).hexdigest()
 
@@ -180,10 +250,12 @@ def main():
     template = get_template(data)
     snapshot = collect_snapshot(snapshot_date, template)
 
+    prev_snapshot = get_template(data) if data["snapshots"] else None
     data["snapshots"][date_str] = snapshot
     save_data(data)
 
     print(f"\n  Added snapshot for {date_str} ({snapshot['label']})")
+    print_summary(snapshot, prev_snapshot)
 
     if no_push:
         print("  Skipping git push (--no-push).")
