@@ -310,6 +310,92 @@
     animation: fadeUp 0.6s 0.5s ease both;
   }
 
+  /* ── PASSWORD GATE ── */
+  .gate-overlay {
+    position: fixed; inset: 0;
+    background: #0a1228;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.3s ease both;
+  }
+  .gate-overlay.hidden { display: none; }
+  .gate-box {
+    background: #0d1b3e;
+    border: 1px solid rgba(125,212,252,0.15);
+    border-radius: 16px;
+    padding: 48px 44px;
+    width: 100%;
+    max-width: 380px;
+    text-align: center;
+  }
+  .gate-eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #7dd4fc;
+    margin-bottom: 12px;
+  }
+  .gate-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px;
+    letter-spacing: 0.06em;
+    color: #ffffff;
+    margin-bottom: 32px;
+    line-height: 1;
+  }
+  .gate-input-wrap { position: relative; margin-bottom: 14px; }
+  #gateInput {
+    width: 100%;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    color: #ffffff;
+    outline: none;
+    transition: border-color 0.2s;
+    letter-spacing: 0.1em;
+  }
+  #gateInput:focus { border-color: #7dd4fc; }
+  #gateInput.error { border-color: var(--danger); animation: shake 0.35s ease; }
+  #gateBtn {
+    width: 100%;
+    padding: 12px;
+    background: #7dd4fc;
+    color: #0a1228;
+    border: none;
+    border-radius: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  #gateBtn:hover { opacity: 0.85; }
+  .gate-error {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--danger);
+    margin-top: 10px;
+    min-height: 16px;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25%       { transform: translateX(-6px); }
+    75%       { transform: translateX(6px); }
+  }
+
   @keyframes fadeUp {
     from { opacity: 0; transform: translateY(18px); }
     to   { opacity: 1; transform: translateY(0); }
@@ -325,6 +411,19 @@
 </style>
 </head>
 <body>
+<!-- PASSWORD GATE -->
+<div class="gate-overlay hidden" id="gateOverlay">
+  <div class="gate-box">
+    <div class="gate-eyebrow">Restricted Access</div>
+    <div class="gate-title">Scorecard Login</div>
+    <div class="gate-input-wrap">
+      <input type="password" id="gateInput" placeholder="Enter password" autocomplete="current-password">
+    </div>
+    <button id="gateBtn">Unlock</button>
+    <div class="gate-error" id="gateError"></div>
+  </div>
+</div>
+
 <div class="wrapper">
 
   <header class="header">
@@ -532,18 +631,59 @@
     return dates[0]; // return latest
   }
 
+  async function sha256(text) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  function initScorecard(data) {
+    const latestDate = buildDatePicker(data.snapshots);
+    renderSnapshot(data.snapshots[latestDate], data.meta);
+    document.getElementById('dateSelect').addEventListener('change', e => {
+      renderSnapshot(data.snapshots[e.target.value], data.meta);
+    });
+  }
+
+  function showGate(data) {
+    const overlay = document.getElementById('gateOverlay');
+    const input   = document.getElementById('gateInput');
+    const btn     = document.getElementById('gateBtn');
+    const errEl   = document.getElementById('gateError');
+
+    overlay.classList.remove('hidden');
+    input.focus();
+
+    async function attempt() {
+      const hash = await sha256(input.value);
+      if (hash === data.meta.password_hash) {
+        sessionStorage.setItem('sc_auth', hash);
+        overlay.classList.add('hidden');
+        initScorecard(data);
+      } else {
+        errEl.textContent = 'Incorrect password.';
+        input.classList.add('error');
+        input.addEventListener('animationend', () => input.classList.remove('error'), { once: true });
+        input.select();
+      }
+    }
+
+    btn.addEventListener('click', attempt);
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') attempt(); });
+  }
+
   fetch('data.json')
     .then(r => r.json())
     .then(data => {
-      const latestDate = buildDatePicker(data.snapshots);
+      const hash = data.meta.password_hash;
 
-      // Render the latest snapshot on load
-      renderSnapshot(data.snapshots[latestDate], data.meta);
+      // No password set — render immediately
+      if (!hash) { initScorecard(data); return; }
 
-      // Re-render on selection change
-      document.getElementById('dateSelect').addEventListener('change', e => {
-        renderSnapshot(data.snapshots[e.target.value], data.meta);
-      });
+      // Already authenticated this session
+      if (sessionStorage.getItem('sc_auth') === hash) { initScorecard(data); return; }
+
+      // Show gate
+      showGate(data);
     })
     .catch(() => {
       document.getElementById('tableBody').innerHTML =

@@ -3,12 +3,14 @@
 Add a new dated snapshot to data.json, then commit and push to GitHub Pages.
 
 Usage:
-  python update_metrics.py              # interactive prompts (defaults to today)
-  python update_metrics.py --no-push   # update data.json only, don't push
-  python update_metrics.py --date 2026-03-15   # specify a date explicitly
+  python update_metrics.py                     # interactive prompts (defaults to today)
+  python update_metrics.py --no-push          # update data.json only, don't push
+  python update_metrics.py --date 2026-03-15  # specify a date explicitly
+  python update_metrics.py --set-password     # set or change the scorecard password
 """
 
 import copy
+import hashlib
 import json
 import subprocess
 import sys
@@ -99,6 +101,34 @@ def collect_snapshot(snapshot_date, template):
         "pages": pages,
     }
 
+def sha256(text):
+    return hashlib.sha256(text.encode()).hexdigest()
+
+
+def set_password():
+    import getpass
+    data = load_data()
+    current = data["meta"].get("password_hash", "")
+    print("\n── Set Scorecard Password ────────────────────────────────")
+    if current:
+        print("  A password is currently set.")
+    else:
+        print("  No password is currently set (scorecard is open access).")
+    print("  Enter a new password, or leave blank to remove password.\n")
+    pw = getpass.getpass("  New password (hidden): ").strip()
+    if pw:
+        confirm = getpass.getpass("  Confirm password (hidden): ").strip()
+        if pw != confirm:
+            print("  Passwords do not match. Aborted.")
+            sys.exit(1)
+        data["meta"]["password_hash"] = sha256(pw)
+        print("  Password set.")
+    else:
+        data["meta"]["password_hash"] = ""
+        print("  Password removed — scorecard is now open access.")
+    save_data(data)
+
+
 def parse_args():
     no_push = "--no-push" in sys.argv
     snapshot_date = date.today()
@@ -112,9 +142,31 @@ def parse_args():
     return snapshot_date, no_push
 
 
+def git_push(label):
+    repo = Path(__file__).parent if "__file__" in dir() else Path.cwd()
+    try:
+        subprocess.run(["git", "add", "data.json"], cwd=repo, check=True)
+        subprocess.run(
+            ["git", "commit", "-m", f"metrics: update scorecard {label}"],
+            cwd=repo, check=True
+        )
+        subprocess.run(["git", "push"], cwd=repo, check=True)
+        print("\n  Pushed to GitHub — Pages will update in ~1 minute.")
+    except subprocess.CalledProcessError as e:
+        print(f"\n  Git error: {e}")
+        sys.exit(1)
+
+
 def main():
+    if "--set-password" in sys.argv:
+        set_password()
+        push = input("\n  Push to GitHub now? [Y/n]: ").strip().lower()
+        if push in ("", "y", "yes"):
+            git_push("password update")
+        return
+
     snapshot_date, no_push = parse_args()
-    date_str = snapshot_date.isoformat()  # e.g. "2026-03-12"
+    date_str = snapshot_date.isoformat()
 
     data = load_data()
 
@@ -132,6 +184,16 @@ def main():
     save_data(data)
 
     print(f"\n  Added snapshot for {date_str} ({snapshot['label']})")
+
+    if no_push:
+        print("  Skipping git push (--no-push).")
+    else:
+        push = input("\n  Push to GitHub now? [Y/n]: ").strip().lower()
+        if push in ("", "y", "yes"):
+            git_push(snapshot["label"])
+        else:
+            print("  Not pushed. Run: git add data.json && git commit && git push")
+
 
 if __name__ == "__main__":
     main()
