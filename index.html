@@ -412,6 +412,30 @@
     to   { opacity: 1; transform: translateY(0); }
   }
 
+  /* ── BRAND TABS ── */
+  .brand-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    animation: fadeUp 0.6s 0.02s ease both;
+  }
+  .brand-tab {
+    padding: 8px 22px;
+    border-radius: 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    transition: all 0.15s;
+  }
+  .brand-tab:hover { border-color: var(--neutral); color: var(--text); }
+  .brand-tab.active { background: var(--neutral); border-color: var(--neutral); color: #fff; }
+
   @media (max-width: 600px) {
     body { padding: 24px 16px; }
     thead th, td { padding: 12px 12px; }
@@ -444,6 +468,12 @@
     </div>
     <div class="header-right" id="headerMeta"></div>
   </header>
+
+  <!-- BRAND TABS -->
+  <div class="brand-tabs" id="brandTabs">
+    <button class="brand-tab active" data-brand="tom-ford">Tom Ford</button>
+    <button class="brand-tab" data-brand="lab-series">Lab Series</button>
+  </div>
 
   <!-- DATE PICKER -->
   <div class="date-bar">
@@ -497,6 +527,12 @@
 </div>
 
 <script>
+  const BRANDS = [
+    { key: 'tom-ford',   label: 'Tom Ford',   file: 'data.json' },
+    { key: 'lab-series', label: 'Lab Series', file: 'data-lab-series.json' },
+  ];
+  const brandDataCache = {};
+
   const thresholds = {
     lcp:   { good: 2.5,  warn: 4.0,  unit: 's', decimals: 2, maxBar: 6 },
     cls:   { good: 0.1,  warn: 0.25, unit: '',  decimals: 2, maxBar: 0.5 },
@@ -695,25 +731,27 @@
   function initScorecard(data) {
     const latestDate = buildDatePicker(data.snapshots);
     renderSnapshot(data.snapshots[latestDate], data.meta, prevSnapshot(data.snapshots, latestDate));
-    document.getElementById('dateSelect').addEventListener('change', e => {
+    document.getElementById('dateSelect').onchange = e => {
       const d = e.target.value;
       renderSnapshot(data.snapshots[d], data.meta, prevSnapshot(data.snapshots, d));
-    });
+    };
   }
 
-  function showGate(data) {
+  function showGate(data, brandKey) {
     const overlay = document.getElementById('gateOverlay');
     const input   = document.getElementById('gateInput');
     const btn     = document.getElementById('gateBtn');
     const errEl   = document.getElementById('gateError');
 
     overlay.classList.remove('hidden');
+    input.value = '';
+    errEl.textContent = '';
     input.focus();
 
     async function attempt() {
       const hash = await sha256(input.value);
       if (hash === data.meta.password_hash) {
-        sessionStorage.setItem('sc_auth', hash);
+        sessionStorage.setItem(`sc_auth_${brandKey}`, hash);
         overlay.classList.add('hidden');
         initScorecard(data);
       } else {
@@ -724,28 +762,37 @@
       }
     }
 
-    btn.addEventListener('click', attempt);
-    input.addEventListener('keydown', e => { if (e.key === 'Enter') attempt(); });
+    btn.onclick = attempt;
+    input.onkeydown = e => { if (e.key === 'Enter') attempt(); };
   }
 
-  fetch('data.json')
-    .then(r => r.json())
-    .then(data => {
+  async function activateBrand(brandKey) {
+    document.querySelectorAll('.brand-tab').forEach(t =>
+      t.classList.toggle('active', t.dataset.brand === brandKey)
+    );
+
+    try {
+      if (!brandDataCache[brandKey]) {
+        const brand = BRANDS.find(b => b.key === brandKey);
+        brandDataCache[brandKey] = await fetch(brand.file).then(r => r.json());
+      }
+      const data = brandDataCache[brandKey];
       const hash = data.meta.password_hash;
 
-      // No password set — render immediately
       if (!hash) { initScorecard(data); return; }
-
-      // Already authenticated this session
-      if (sessionStorage.getItem('sc_auth') === hash) { initScorecard(data); return; }
-
-      // Show gate
-      showGate(data);
-    })
-    .catch(() => {
+      if (sessionStorage.getItem(`sc_auth_${brandKey}`) === hash) { initScorecard(data); return; }
+      showGate(data, brandKey);
+    } catch {
       document.getElementById('tableBody').innerHTML =
-        '<tr><td colspan="7" style="text-align:center;color:var(--danger);padding:40px">Failed to load data.json</td></tr>';
-    });
+        '<tr><td colspan="7" style="text-align:center;color:var(--danger);padding:40px">Failed to load data</td></tr>';
+    }
+  }
+
+  document.querySelectorAll('.brand-tab').forEach(tab =>
+    tab.addEventListener('click', () => activateBrand(tab.dataset.brand))
+  );
+
+  activateBrand('tom-ford');
 </script>
 </body>
 </html>
