@@ -1,0 +1,43 @@
+{
+  "meta": {
+    "title": "Lab Series Shopify Migration",
+    "device": "Mobile",
+    "platform": "Shopify",
+    "password_hash": null
+  },
+  "snapshots": {
+    "2026-03-11": {
+      "label": "Mar 5 \u2013 Mar 12, 2026",
+      "pages_audited": 3,
+      "pages": [
+        {
+          "name": "Homepage",
+          "type": "Shopify",
+          "lcp": 1.84,
+          "cls": 0.01,
+          "tbt": 1.16,
+          "ttfb": 1.03,
+          "score": 58
+        },
+        {
+          "name": "PLP",
+          "type": "Shopify",
+          "lcp": 1.68,
+          "cls": 0.01,
+          "tbt": 1.08,
+          "ttfb": 0.839,
+          "score": 59
+        },
+        {
+          "name": "PDP",
+          "type": "Shopify",
+          "lcp": 1.39,
+          "cls": 0.05,
+          "tbt": 0.964,
+          "ttfb": 0.593,
+          "score": 63
+        }
+      ]
+    }
+  }
+}
