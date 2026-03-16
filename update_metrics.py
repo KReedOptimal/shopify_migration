@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """
-Add a new dated snapshot to data.json, then commit and push to GitHub Pages.
+Add a new dated snapshot to brand data files, then commit and push to GitHub Pages.
 
 Usage:
-  python update_metrics.py                     # interactive prompts (defaults to today)
-  python update_metrics.py --no-push          # update data.json only, don't push
-  python update_metrics.py --date 2026-03-15  # specify a date explicitly
-  python update_metrics.py --set-password     # set or change the scorecard password
+  python update_metrics.py                          # interactive prompts (defaults to today)
+  python update_metrics.py --no-push               # update data files only, don't push
+  python update_metrics.py --date 2026-03-15       # specify a date explicitly
+  python update_metrics.py --skip lab-series       # skip a brand (keys: tom-ford, lab-series)
+  python update_metrics.py --set-password          # set or change the scorecard password
 """
 
 import copy
@@ -17,18 +18,28 @@ import sys
 from datetime import date, timedelta
 from pathlib import Path
 
-DATA_FILE = (Path(__file__).parent if "__file__" in dir() else Path.cwd()) / "data.json"
+BASE_DIR = Path(__file__).parent if "__file__" in dir() else Path.cwd()
+
+BRANDS = [
+    {"key": "tom-ford",   "label": "Tom Ford",   "file": "data.json"},
+    {"key": "lab-series", "label": "Lab Series", "file": "data-lab-series.json"},
+]
+
+# Legacy alias kept for --set-password (defaults to first brand if not specified)
+DATA_FILE = BASE_DIR / "data.json"
 
 
-def load_data():
-    with open(DATA_FILE) as f:
+def load_data(file_path=None):
+    path = file_path or DATA_FILE
+    with open(path) as f:
         return json.load(f)
 
 
-def save_data(data):
-    with open(DATA_FILE, "w") as f:
+def save_data(data, file_path=None):
+    path = file_path or DATA_FILE
+    with open(path, "w") as f:
         json.dump(data, f, indent=2)
-    print(f"  Saved {DATA_FILE}")
+    print(f"  Saved {path}")
 
 
 def prompt_float(label, current):
@@ -78,7 +89,7 @@ def collect_snapshot(snapshot_date, template):
 
     print("\n── Snapshot Metadata ─────────────────────────────────────")
     print("  (Press Enter to keep the shown default)\n")
-    print(f"  Date range (auto): {label}")
+    label = prompt_str("Date range", label)
     pages_audited = prompt_int("Pages audited", template["pages_audited"])
 
     print("\n── Page Metrics ──────────────────────────────────────────")
@@ -201,6 +212,19 @@ def set_password():
 
 def parse_args():
     no_push = "--no-push" in sys.argv
+    skip_keys = set()
+    if "--skip" in sys.argv:
+        idx = sys.argv.index("--skip")
+        try:
+            raw = sys.argv[idx + 1]
+            valid_keys = {b["key"] for b in BRANDS}
+            if raw not in valid_keys:
+                print(f"  Error: unknown brand key '{raw}'. Valid options: {', '.join(sorted(valid_keys))}")
+                sys.exit(1)
+            skip_keys.add(raw)
+        except IndexError:
+            print("  Error: --skip requires a brand key (e.g. --skip lab-series).")
+            sys.exit(1)
     snapshot_date = date.today()
     if "--date" in sys.argv:
         idx = sys.argv.index("--date")
@@ -209,13 +233,13 @@ def parse_args():
         except (IndexError, ValueError):
             print("  Error: --date requires a value in YYYY-MM-DD format.")
             sys.exit(1)
-    return snapshot_date, no_push
+    return snapshot_date, no_push, skip_keys
 
 
-def git_push(label):
-    repo = Path(__file__).parent if "__file__" in dir() else Path.cwd()
+def git_push(label, files):
+    repo = BASE_DIR
     try:
-        subprocess.run(["git", "add", "data.json"], cwd=repo, check=True)
+        subprocess.run(["git", "add"] + files, cwd=repo, check=True)
         subprocess.run(
             ["git", "commit", "-m", f"metrics: update scorecard {label}"],
             cwd=repo, check=True
@@ -232,39 +256,77 @@ def main():
         set_password()
         push = input("\n  Push to GitHub now? [Y/n]: ").strip().lower()
         if push in ("", "y", "yes"):
-            git_push("password update")
+            git_push("password update", ["data.json"])
         return
 
-    snapshot_date, no_push = parse_args()
+    snapshot_date, no_push, skip_keys = parse_args()
     date_str = snapshot_date.isoformat()
 
-    data = load_data()
+    active_brands = [b for b in BRANDS if b["key"] not in skip_keys]
+    if not active_brands:
+        print("  Error: all brands are skipped. Nothing to update.")
+        sys.exit(1)
 
-    if date_str in data["snapshots"]:
-        print(f"\n  Snapshot for {date_str} already exists.")
-        overwrite = input("  Overwrite? [y/N]: ").strip().lower()
-        if overwrite not in ("y", "yes"):
-            print("  Aborted.")
-            sys.exit(0)
+    if skip_keys:
+        skipped_labels = [b["label"] for b in BRANDS if b["key"] in skip_keys]
+        print(f"\n  Skipping: {', '.join(skipped_labels)}")
 
-    template = get_template(data)
-    snapshot = collect_snapshot(snapshot_date, template)
+    last_label = None
+    updated_files = []
 
-    prev_snapshot = get_template(data) if data["snapshots"] else None
-    data["snapshots"][date_str] = snapshot
-    save_data(data)
+    for brand in active_brands:
+        file_path = BASE_DIR / brand["file"]
+        print(f"\n{'═' * 58}")
+        print(f"  Brand: {brand['label']}")
+        print(f"{'═' * 58}")
 
-    print(f"\n  Added snapshot for {date_str} ({snapshot['label']})")
-    print_summary(snapshot, prev_snapshot)
+        # Allow per-brand date override
+        brand_date = snapshot_date
+        brand_date_str = date_str
+        if len(active_brands) > 1:
+            raw = input(f"\n  Snapshot date [{date_str}]: ").strip()
+            if raw:
+                try:
+                    brand_date = date.fromisoformat(raw)
+                    brand_date_str = brand_date.isoformat()
+                except ValueError:
+                    print(f"  Invalid date '{raw}', using default {date_str}.")
+
+        data = load_data(file_path)
+
+        if brand_date_str in data["snapshots"]:
+            print(f"\n  Snapshot for {brand_date_str} already exists.")
+            overwrite = input("  Overwrite? [y/N]: ").strip().lower()
+            if overwrite not in ("y", "yes"):
+                print("  Skipping this brand.")
+                continue
+
+        template = get_template(data)
+        snapshot = collect_snapshot(brand_date, template)
+
+        prev_snapshot = get_template(data) if data["snapshots"] else None
+        data["snapshots"][brand_date_str] = snapshot
+        save_data(data, file_path)
+
+        print(f"\n  Added snapshot for {date_str} ({snapshot['label']})")
+        print_summary(snapshot, prev_snapshot)
+
+        last_label = snapshot["label"]
+        updated_files.append(brand["file"])
+
+    if not updated_files:
+        print("\n  No files updated.")
+        return
 
     if no_push:
         print("  Skipping git push (--no-push).")
     else:
         push = input("\n  Push to GitHub now? [Y/n]: ").strip().lower()
         if push in ("", "y", "yes"):
-            git_push(snapshot["label"])
+            git_push(last_label, updated_files)
         else:
-            print("  Not pushed. Run: git add data.json && git commit && git push")
+            files_str = " ".join(updated_files)
+            print(f"  Not pushed. Run: git add {files_str} && git commit && git push")
 
 
 if __name__ == "__main__":

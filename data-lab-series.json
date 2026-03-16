@@ -38,6 +38,39 @@
           "score": 63
         }
       ]
+    },
+    "2026-03-16": {
+      "label": "Mar 8 \u2013 Mar 15, 2026",
+      "pages_audited": 3,
+      "pages": [
+        {
+          "name": "Homepage",
+          "type": "Shopify",
+          "lcp": 1.85,
+          "cls": 0.01,
+          "tbt": 1.31,
+          "ttfb": 1.04,
+          "score": 57
+        },
+        {
+          "name": "PLP",
+          "type": "Shopify",
+          "lcp": 1.69,
+          "cls": 0.01,
+          "tbt": 1.14,
+          "ttfb": 0.834,
+          "score": 59
+        },
+        {
+          "name": "PDP",
+          "type": "Shopify",
+          "lcp": 1.4,
+          "cls": 0.05,
+          "tbt": 1.08,
+          "ttfb": 0.6,
+          "score": 62
+        }
+      ]
     }
   }
 }
