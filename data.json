@@ -112,29 +112,29 @@
         {
           "name": "Homepage",
           "type": "Shopify",
-          "lcp": 1.79,
-          "cls": 0.14,
-          "tbt": 1.51,
-          "ttfb": 0.775,
-          "score": 48
+          "lcp": 1.62,
+          "cls": 0.06,
+          "tbt": 1.42,
+          "ttfb": 0.745,
+          "score": 61
         },
         {
           "name": "PLP",
           "type": "Shopify",
-          "lcp": 2.79,
+          "lcp": 2.86,
           "cls": 0.01,
-          "tbt": 1.81,
-          "ttfb": 1.44,
-          "score": 42
+          "tbt": 1.54,
+          "ttfb": 1.66,
+          "score": 44
         },
         {
           "name": "PDP",
           "type": "Shopify",
-          "lcp": 2.31,
-          "cls": 0.03,
-          "tbt": 1.59,
-          "ttfb": 1.05,
-          "score": 46
+          "lcp": 1.75,
+          "cls": 0.02,
+          "tbt": 0.951,
+          "ttfb": 1.03,
+          "score": 65
         }
       ]
     }
