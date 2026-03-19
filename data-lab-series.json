@@ -23,7 +23,7 @@
           "name": "PLP",
           "type": "Shopify",
           "lcp": 2.06,
-          "cls": 0.00,
+          "cls": 0.0,
           "tbt": 0.844,
           "ttfb": 1.11,
           "score": 54
@@ -67,7 +67,7 @@
           "lcp": 1.51,
           "cls": 0.13,
           "tbt": 0.611,
-          "ttfb": 0.690,
+          "ttfb": 0.69,
           "score": 61
         }
       ]
@@ -82,14 +82,14 @@
           "lcp": 2.57,
           "cls": 0.01,
           "tbt": 1.28,
-          "ttfb": 1.50,
+          "ttfb": 1.5,
           "score": 45
         },
         {
           "name": "PLP",
           "type": "Shopify",
           "lcp": 2.05,
-          "cls": 0.00,
+          "cls": 0.0,
           "tbt": 0.711,
           "ttfb": 1.08,
           "score": 56
@@ -102,6 +102,39 @@
           "tbt": 0.616,
           "ttfb": 0.657,
           "score": 62
+        }
+      ]
+    },
+    "2026-03-19": {
+      "label": "Mar 18",
+      "pages_audited": 3,
+      "pages": [
+        {
+          "name": "Homepage",
+          "type": "Shopify",
+          "lcp": 2.18,
+          "cls": 0.0,
+          "tbt": 2.08,
+          "ttfb": 1.05,
+          "score": 44
+        },
+        {
+          "name": "PLP",
+          "type": "Shopify",
+          "lcp": 3.23,
+          "cls": 0.00,
+          "tbt": 1.64,
+          "ttfb": 1.36,
+          "score": 38
+        },
+        {
+          "name": "PDP",
+          "type": "Shopify",
+          "lcp": 2.33,
+          "cls": 0.17,
+          "tbt": 1.79,
+          "ttfb": 1.27,
+          "score": 37
         }
       ]
     }
