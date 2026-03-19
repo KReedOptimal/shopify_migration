@@ -620,12 +620,12 @@
   function tileDelta(key, val, prevVal) {
     if (prevVal == null || prevVal === 0) return '';
     const pct = (val - prevVal) / prevVal * 100;
-    if (Math.abs(pct) < 0.5) return '<div class="tile-delta" style="color:var(--muted)">— no change vs prior week</div>';
+    if (Math.abs(pct) < 0.5) return '<div class="tile-delta" style="color:var(--muted)">— no change vs prior snapshot</div>';
     const lowerIsBetter = key !== 'score';
     const improved = lowerIsBetter ? pct < 0 : pct > 0;
     const color = improved ? 'var(--good)' : 'var(--danger)';
     const arrow = pct < 0 ? '▼' : '▲';
-    return `<div class="tile-delta" style="color:${color}">${arrow} ${Math.round(Math.abs(pct))}% vs prior week</div>`;
+    return `<div class="tile-delta" style="color:${color}">${arrow} ${Math.round(Math.abs(pct))}% vs prior snapshot</div>`;
   }
 
   function renderSnapshot(snapshot, globalMeta, prevSnapshot) {
@@ -665,7 +665,7 @@
       <div class="tile"><div class="tile-label">Avg. Lighthouse</div>
         <div class="tile-value c-${ratingClass(getRating('score', avgScore))}">${avgScore}</div>
         <div class="tile-sub">Target: 90+</div>
-        ${prevAvgScore !== null ? (prevAvgScore !== avgScore ? `<div class="tile-delta" style="color:${avgScore > prevAvgScore ? 'var(--good)' : 'var(--danger)'}">${avgScore > prevAvgScore ? '▲' : '▼'} ${Math.abs(avgScore - prevAvgScore)} pt${Math.abs(avgScore - prevAvgScore) !== 1 ? 's' : ''} vs prior week</div>` : `<div class="tile-delta" style="color:var(--muted)">— no change vs prior week</div>`) : ''}</div>
+        ${prevAvgScore !== null ? (prevAvgScore !== avgScore ? `<div class="tile-delta" style="color:${avgScore > prevAvgScore ? 'var(--good)' : 'var(--danger)'}">${avgScore > prevAvgScore ? '▲' : '▼'} ${Math.abs(avgScore - prevAvgScore)} pt${Math.abs(avgScore - prevAvgScore) !== 1 ? 's' : ''} vs prior snapshot</div>` : `<div class="tile-delta" style="color:var(--muted)">— no change vs prior snapshot</div>`) : ''}</div>
       <div class="tile"><div class="tile-label">Avg. LCP</div>
         <div class="tile-value c-${ratingClass(getRating('lcp', parseFloat(avgLcp)))}">${avgLcp}<span class="tile-unit">s</span></div>
         <div class="tile-sub">Target: ≤ 2.5s</div>
@@ -677,7 +677,7 @@
       <div class="tile"><div class="tile-label">Metrics Passing</div>
         <div class="tile-value c-good">${passing}<span style="font-size:22px;color:var(--muted)">/${totalMetrics}</span></div>
         <div class="tile-sub">Across all pages</div>
-        ${prevPassing !== null ? (prevPassing !== passing ? `<div class="tile-delta" style="color:${passing > prevPassing ? 'var(--good)' : 'var(--danger)'}">${passing > prevPassing ? '▲' : '▼'} ${Math.abs(passing - prevPassing)} metric${Math.abs(passing - prevPassing) !== 1 ? 's' : ''} vs prior week</div>` : `<div class="tile-delta" style="color:var(--muted)">— no change vs prior week</div>`) : ''}</div>
+        ${prevPassing !== null ? (prevPassing !== passing ? `<div class="tile-delta" style="color:${passing > prevPassing ? 'var(--good)' : 'var(--danger)'}">${passing > prevPassing ? '▲' : '▼'} ${Math.abs(passing - prevPassing)} metric${Math.abs(passing - prevPassing) !== 1 ? 's' : ''} vs prior snapshot</div>` : `<div class="tile-delta" style="color:var(--muted)">— no change vs prior snapshot</div>`) : ''}</div>
     `;
 
     // Table
