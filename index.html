@@ -111,7 +111,7 @@
     color: var(--muted);
     pointer-events: none;
   }
-  #dateSelect {
+  #dateSelect, #compareSelect {
     appearance: none;
     background: var(--surface);
     border: 1px solid var(--border);
@@ -124,7 +124,8 @@
     outline: none;
     transition: border-color 0.15s;
   }
-  #dateSelect:hover, #dateSelect:focus { border-color: var(--neutral); }
+  #dateSelect:hover, #dateSelect:focus,
+  #compareSelect:hover, #compareSelect:focus { border-color: var(--neutral); }
   .date-count {
     font-family: 'DM Mono', monospace;
     font-size: 10px;
@@ -481,6 +482,10 @@
     <div class="date-select-wrap">
       <select id="dateSelect"></select>
     </div>
+    <span class="date-bar-label">vs</span>
+    <div class="date-select-wrap">
+      <select id="compareSelect"></select>
+    </div>
     <span class="date-count" id="dateCount"></span>
   </div>
 
@@ -617,18 +622,19 @@
     return '<span class="badge badge-warn">Needs Work</span>';
   }
 
-  function tileDelta(key, val, prevVal) {
+  function tileDelta(key, val, prevVal, compareLabel) {
     if (prevVal == null || prevVal === 0) return '';
+    const vs = compareLabel ? `vs ${compareLabel}` : 'vs prior snapshot';
     const pct = (val - prevVal) / prevVal * 100;
-    if (Math.abs(pct) < 0.5) return '<div class="tile-delta" style="color:var(--muted)">— no change vs prior snapshot</div>';
+    if (Math.abs(pct) < 0.5) return `<div class="tile-delta" style="color:var(--muted)">— no change ${vs}</div>`;
     const lowerIsBetter = key !== 'score';
     const improved = lowerIsBetter ? pct < 0 : pct > 0;
     const color = improved ? 'var(--good)' : 'var(--danger)';
     const arrow = pct < 0 ? '▼' : '▲';
-    return `<div class="tile-delta" style="color:${color}">${arrow} ${Math.round(Math.abs(pct))}% vs prior snapshot</div>`;
+    return `<div class="tile-delta" style="color:${color}">${arrow} ${Math.round(Math.abs(pct))}% ${vs}</div>`;
   }
 
-  function renderSnapshot(snapshot, globalMeta, prevSnapshot) {
+  function renderSnapshot(snapshot, globalMeta, prevSnapshot, compareLabel) {
     const pages = snapshot.pages;
 
     // Header meta
@@ -661,23 +667,24 @@
     const prevPassing  = prevPages ? prevPages.reduce((s, p) =>
       s + ['lcp','cls','tbt','ttfb','score'].filter(k => getRating(k, p[k]) === 'good').length, 0) : null;
 
+    const vs = compareLabel ? `vs ${compareLabel}` : 'vs prior snapshot';
     document.getElementById('summaryGrid').innerHTML = `
       <div class="tile"><div class="tile-label">Avg. Lighthouse</div>
         <div class="tile-value c-${ratingClass(getRating('score', avgScore))}">${avgScore}</div>
         <div class="tile-sub">Target: 90+</div>
-        ${prevAvgScore !== null ? (prevAvgScore !== avgScore ? `<div class="tile-delta" style="color:${avgScore > prevAvgScore ? 'var(--good)' : 'var(--danger)'}">${avgScore > prevAvgScore ? '▲' : '▼'} ${Math.abs(avgScore - prevAvgScore)} pt${Math.abs(avgScore - prevAvgScore) !== 1 ? 's' : ''} vs prior snapshot</div>` : `<div class="tile-delta" style="color:var(--muted)">— no change vs prior snapshot</div>`) : ''}</div>
+        ${prevAvgScore !== null ? (prevAvgScore !== avgScore ? `<div class="tile-delta" style="color:${avgScore > prevAvgScore ? 'var(--good)' : 'var(--danger)'}">${avgScore > prevAvgScore ? '▲' : '▼'} ${Math.abs(avgScore - prevAvgScore)} pt${Math.abs(avgScore - prevAvgScore) !== 1 ? 's' : ''} ${vs}</div>` : `<div class="tile-delta" style="color:var(--muted)">— no change ${vs}</div>`) : ''}</div>
       <div class="tile"><div class="tile-label">Avg. LCP</div>
         <div class="tile-value c-${ratingClass(getRating('lcp', parseFloat(avgLcp)))}">${avgLcp}<span class="tile-unit">s</span></div>
         <div class="tile-sub">Target: ≤ 2.5s</div>
-        ${tileDelta('lcp', parseFloat(avgLcp), prevAvgLcp)}</div>
+        ${tileDelta('lcp', parseFloat(avgLcp), prevAvgLcp, compareLabel)}</div>
       <div class="tile"><div class="tile-label">Avg. TBT</div>
         <div class="tile-value c-${ratingClass(getRating('tbt', parseFloat(avgTbt)))}">${avgTbt}<span class="tile-unit">s</span></div>
         <div class="tile-sub">Target: ≤ 200ms</div>
-        ${tileDelta('tbt', parseFloat(avgTbt), prevAvgTbt)}</div>
+        ${tileDelta('tbt', parseFloat(avgTbt), prevAvgTbt, compareLabel)}</div>
       <div class="tile"><div class="tile-label">Metrics Passing</div>
         <div class="tile-value c-good">${passing}<span style="font-size:22px;color:var(--muted)">/${totalMetrics}</span></div>
         <div class="tile-sub">Across all pages</div>
-        ${prevPassing !== null ? (prevPassing !== passing ? `<div class="tile-delta" style="color:${passing > prevPassing ? 'var(--good)' : 'var(--danger)'}">${passing > prevPassing ? '▲' : '▼'} ${Math.abs(passing - prevPassing)} metric${Math.abs(passing - prevPassing) !== 1 ? 's' : ''} vs prior snapshot</div>` : `<div class="tile-delta" style="color:var(--muted)">— no change vs prior snapshot</div>`) : ''}</div>
+        ${prevPassing !== null ? (prevPassing !== passing ? `<div class="tile-delta" style="color:${passing > prevPassing ? 'var(--good)' : 'var(--danger)'}">${passing > prevPassing ? '▲' : '▼'} ${Math.abs(passing - prevPassing)} metric${Math.abs(passing - prevPassing) !== 1 ? 's' : ''} ${vs}</div>` : `<div class="tile-delta" style="color:var(--muted)">— no change ${vs}</div>`) : ''}</div>
     `;
 
     // Table
@@ -722,18 +729,50 @@
     return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
   }
 
-  function prevSnapshot(snapshots, selectedDate) {
-    const dates = Object.keys(snapshots).sort();
-    const idx = dates.indexOf(selectedDate);
-    return idx > 0 ? snapshots[dates[idx - 1]] : null;
+  function buildComparePicker(snapshots, selectedDate, preferredCompare) {
+    const dates = Object.keys(snapshots).sort((a, b) => b.localeCompare(a)); // descending
+    const ascending = [...dates].reverse();
+    const idx = ascending.indexOf(selectedDate);
+    const defaultCompare = idx > 0 ? ascending[idx - 1] : '';
+
+    const sel = document.getElementById('compareSelect');
+    sel.innerHTML = '<option value="">— none —</option>';
+    dates.forEach(d => {
+      if (d >= selectedDate) return;
+      const opt = document.createElement('option');
+      opt.value = d;
+      opt.textContent = snapshots[d].label || d;
+      sel.appendChild(opt);
+    });
+
+    // Use preferred if still valid, otherwise fall back to default
+    sel.value = (preferredCompare && preferredCompare !== selectedDate) ? preferredCompare : defaultCompare;
+    return sel.value;
   }
 
   function initScorecard(data) {
-    const latestDate = buildDatePicker(data.snapshots);
-    renderSnapshot(data.snapshots[latestDate], data.meta, prevSnapshot(data.snapshots, latestDate));
+    const snapshots = data.snapshots;
+    const latestDate = buildDatePicker(snapshots);
+    const initialCompare = buildComparePicker(snapshots, latestDate);
+    renderSnapshot(snapshots[latestDate], data.meta,
+      initialCompare ? snapshots[initialCompare] : null,
+      initialCompare ? snapshots[initialCompare].label : null);
+
     document.getElementById('dateSelect').onchange = e => {
       const d = e.target.value;
-      renderSnapshot(data.snapshots[d], data.meta, prevSnapshot(data.snapshots, d));
+      const prevCompare = document.getElementById('compareSelect').value;
+      const newCompare = buildComparePicker(snapshots, d, prevCompare);
+      renderSnapshot(snapshots[d], data.meta,
+        newCompare ? snapshots[newCompare] : null,
+        newCompare ? snapshots[newCompare].label : null);
+    };
+
+    document.getElementById('compareSelect').onchange = e => {
+      const d = document.getElementById('dateSelect').value;
+      const compareDate = e.target.value;
+      renderSnapshot(snapshots[d], data.meta,
+        compareDate ? snapshots[compareDate] : null,
+        compareDate ? snapshots[compareDate].label : null);
     };
   }
 
