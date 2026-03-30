@@ -302,6 +302,138 @@
           "score": 40
         }
       ]
+    },
+    "2026-03-27": {
+      "label": "Mar 19 - Mar 26, 2026",
+      "pages_audited": 3,
+      "pages": [
+        {
+          "name": "Homepage",
+          "type": "Shopify",
+          "lcp": 1.933,
+          "cls": 0.012,
+          "tbt": 2.162,
+          "ttfb": 0.925,
+          "score": 47
+        },
+        {
+          "name": "PLP",
+          "type": "Shopify",
+          "lcp": 2.972,
+          "cls": 0.034,
+          "tbt": 1.584,
+          "ttfb": 1.303,
+          "score": 43
+        },
+        {
+          "name": "PDP",
+          "type": "Shopify",
+          "lcp": 2.19,
+          "cls": 0.162,
+          "tbt": 1.76,
+          "ttfb": 1.144,
+          "score": 41
+        }
+      ]
+    },
+    "2026-03-28": {
+      "label": "Mar 20 - Mar 27, 2026",
+      "pages_audited": 3,
+      "pages": [
+        {
+          "name": "Homepage",
+          "type": "Shopify",
+          "lcp": 1.863,
+          "cls": 0.012,
+          "tbt": 2.13,
+          "ttfb": 0.851,
+          "score": 48
+        },
+        {
+          "name": "PLP",
+          "type": "Shopify",
+          "lcp": 2.929,
+          "cls": 0.034,
+          "tbt": 1.605,
+          "ttfb": 1.26,
+          "score": 43
+        },
+        {
+          "name": "PDP",
+          "type": "Shopify",
+          "lcp": 2.171,
+          "cls": 0.158,
+          "tbt": 1.782,
+          "ttfb": 1.107,
+          "score": 41
+        }
+      ]
+    },
+    "2026-03-29": {
+      "label": "Mar 21 - Mar 28, 2026",
+      "pages_audited": 3,
+      "pages": [
+        {
+          "name": "Homepage",
+          "type": "Shopify",
+          "lcp": 1.794,
+          "cls": 0.012,
+          "tbt": 2.089,
+          "ttfb": 0.796,
+          "score": 49
+        },
+        {
+          "name": "PLP",
+          "type": "Shopify",
+          "lcp": 2.88,
+          "cls": 0.033,
+          "tbt": 1.584,
+          "ttfb": 1.223,
+          "score": 44
+        },
+        {
+          "name": "PDP",
+          "type": "Shopify",
+          "lcp": 2.131,
+          "cls": 0.154,
+          "tbt": 1.78,
+          "ttfb": 1.069,
+          "score": 42
+        }
+      ]
+    },
+    "2026-03-30": {
+      "label": "Mar 22 - Mar 29, 2026",
+      "pages_audited": 3,
+      "pages": [
+        {
+          "name": "Homepage",
+          "type": "Shopify",
+          "lcp": 1.731,
+          "cls": 0.007,
+          "tbt": 2.085,
+          "ttfb": 0.734,
+          "score": 50
+        },
+        {
+          "name": "PLP",
+          "type": "Shopify",
+          "lcp": 2.829,
+          "cls": 0.033,
+          "tbt": 1.584,
+          "ttfb": 1.18,
+          "score": 45
+        },
+        {
+          "name": "PDP",
+          "type": "Shopify",
+          "lcp": 2.086,
+          "cls": 0.151,
+          "tbt": 1.77,
+          "ttfb": 1.022,
+          "score": 43
+        }
+      ]
     }
   }
 }

@@ -310,6 +310,7 @@ def git_push(label: str, files: list[str]):
 def parse_args():
     no_push      = "--no-push"      in sys.argv
     dry_run      = "--dry-run"      in sys.argv
+    yes          = "--yes"          in sys.argv
     list_metrics_ = "--list-metrics" in sys.argv
     skip_keys: set[str] = set()
 
@@ -335,13 +336,14 @@ def parse_args():
             print("  Error: --date requires YYYY-MM-DD.")
             sys.exit(1)
 
-    return snapshot_date, no_push, dry_run, list_metrics_, skip_keys
+    return snapshot_date, no_push, dry_run, yes, list_metrics_, skip_keys
 
 
 # ── Main ───────────────────────────────────────────────────────────────────────
 
 def main():
-    snapshot_date, no_push, dry_run, do_list_metrics, skip_keys = parse_args()
+    snapshot_date, no_push, dry_run, yes, do_list_metrics, skip_keys = parse_args()
+    interactive = sys.stdin.isatty() and not yes
     date_str  = snapshot_date.isoformat()
     label     = date_label(snapshot_date)
     start_ms, stop_ms = window_ms(snapshot_date)
@@ -387,7 +389,7 @@ def main():
 
         if date_str in data["snapshots"] and not dry_run:
             print(f"\n  Snapshot for {date_str} already exists.")
-            if input("  Overwrite? [y/N]: ").strip().lower() not in ("y", "yes"):
+            if not interactive or input("  Overwrite? [y/N]: ").strip().lower() not in ("y", "yes"):
                 print("  Skipping.")
                 continue
 
@@ -424,12 +426,11 @@ def main():
 
     if no_push:
         print("\n  Skipping git push (--no-push).")
+    elif not interactive or input("\n  Push to GitHub now? [Y/n]: ").strip().lower() in ("", "y", "yes"):
+        git_push(label, updated_files)
     else:
-        if input("\n  Push to GitHub now? [Y/n]: ").strip().lower() in ("", "y", "yes"):
-            git_push(label, updated_files)
-        else:
-            files_str = " ".join(updated_files)
-            print(f"  Not pushed. Run: git add {files_str} && git commit && git push")
+        files_str = " ".join(updated_files)
+        print(f"  Not pushed. Run: git add {files_str} && git commit && git push")
 
 
 if __name__ == "__main__":
