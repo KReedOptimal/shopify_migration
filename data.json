@@ -632,6 +632,39 @@
           "score": 47
         }
       ]
+    },
+    "2026-04-04": {
+      "label": "Mar 27 - Apr 3, 2026",
+      "pages_audited": 3,
+      "pages": [
+        {
+          "name": "Homepage",
+          "type": "Shopify",
+          "lcp": 1.642,
+          "cls": 0.002,
+          "tbt": 1.795,
+          "ttfb": 0.652,
+          "score": 53
+        },
+        {
+          "name": "PLP",
+          "type": "Shopify",
+          "lcp": 3.165,
+          "cls": 0.022,
+          "tbt": 2.028,
+          "ttfb": 1.988,
+          "score": 40
+        },
+        {
+          "name": "PDP",
+          "type": "Shopify",
+          "lcp": 2.258,
+          "cls": 0.041,
+          "tbt": 1.656,
+          "ttfb": 1.278,
+          "score": 47
+        }
+      ]
     }
   }
 }
